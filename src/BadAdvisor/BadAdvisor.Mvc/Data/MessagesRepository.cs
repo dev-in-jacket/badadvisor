@@ -1,50 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Azure.Cosmos.Table;
+using Azure.Data.Tables;
 
 namespace BadAdvisor.Mvc.Data
 {
     public class MessagesRepository : IMessagesRepository
     {
-        private const string TableName = "commitmessage";
-        private const string PartitionKey = "fun";
-        private readonly CloudTableClient _tableClient;
+        private static readonly Message Default = new() { Text = "Default message"};
+        private static Random _rand = new (DateTime.UtcNow.Millisecond);
+        private readonly TableClient _tableClient;
 
-        public MessagesRepository(CloudTableClient tableClient)
+        public MessagesRepository(TableClient tableClient)
         {
             _tableClient = tableClient;
         }
 
-        public int GetTotalCount()
+        public Message GetNext()
         {
-            var table = _tableClient.GetTableReference(TableName);
+            var partitionKey = "fun";
+            var queryResultsFilter = _tableClient.Query<Message>(filter: $"PartitionKey eq '{partitionKey}'");
 
-            var result = table.ExecuteQuery(new TableQuery<Message>()
+            int totalCount = 0;
+            var messages = new List<Message>();
+
+            foreach (Message message in queryResultsFilter)
             {
-                SelectColumns = new List<string>(0) {},
-            }, new TableRequestOptions());
+                totalCount++;
+                messages.Add(message);
+            }
 
-            return result.Count();
-        }
+            if (totalCount == 0)
+            {
+                return Default;
+            }
 
-        public async Task<Message> Get(int id)
-        {
-            var table = _tableClient.GetTableReference(TableName);
-            var operation = TableOperation.Retrieve<Message>(PartitionKey, id.ToString());
-            var result = await table.ExecuteAsync(operation);
+            var itemNumber = _rand.Next(totalCount);
 
-            if (result.Result == null) throw new InvalidOperationException($"Didn't find a message with the specified id: '{id}'.");
-
-            return result.Result as Message;
+            return messages[itemNumber];
         }
     }
 
     public interface IMessagesRepository
     {
-        int GetTotalCount();
-
-        Task<Message> Get(int id);
+        Message GetNext();
     }
 }

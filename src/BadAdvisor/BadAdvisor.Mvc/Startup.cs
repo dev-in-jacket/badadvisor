@@ -1,7 +1,8 @@
+using System;
+using Azure.Data.Tables;
 using BadAdvisor.Mvc.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,12 +22,16 @@ namespace BadAdvisor.Mvc
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddScoped<IMessagesRepository, MessagesRepository>();
-            services.AddSingleton<CloudStorageAccount>(_ => 
-                CloudStorageAccount.Parse(Configuration["StorageConnectionString"]));
-            services.AddSingleton<CloudTableClient>(s =>
+
+            services.AddSingleton(_ =>
             {
-                var storageAccount = s.GetRequiredService<CloudStorageAccount>();
-                return storageAccount.CreateCloudTableClient(new TableClientConfiguration());
+                var tableClient = new TableClient(
+                    new Uri("http://127.0.0.1:10002/devstoreaccount1"),
+                    "badadvisor",
+                    new TableSharedKeyCredential("devstoreaccount1",
+                        "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="));
+
+                return tableClient;
             });
 
             services.AddControllersWithViews();
