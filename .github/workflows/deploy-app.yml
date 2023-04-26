@@ -40,9 +40,10 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
-      - uses: azure/login@v1
+      - name: Login via Az module
+        uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{secrets.AZURE_CREDENTIALS}}
           enable-AzPSSession: true 
 
       - name: Download artifact from build job
